@@ -29,6 +29,7 @@ namespace osu.Game.Overlays.Settings.Sections
             {
                 new AudioDevicesSettings(),
                 new VolumeSettings(),
+                new HitsoundSettings(),
                 new OffsetSettings(),
             };
         }

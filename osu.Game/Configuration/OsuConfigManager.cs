@@ -104,6 +104,8 @@ namespace osu.Game.Configuration
             SetDefault(OsuSetting.MenuMusic, true);
             SetDefault(OsuSetting.MenuTips, true);
 
+            SetDefault(OsuSetting.HitsoundPitchingAmount, 0, -24, 24, 0.1f);
+
             SetDefault(OsuSetting.AudioOffset, 0, -500.0, 500.0, 1);
 
             // Input
@@ -373,6 +375,8 @@ namespace osu.Game.Configuration
         /// This is added to the audio track's current time. Higher values will cause gameplay to occur earlier, relative to the audio track.
         /// </summary>
         AudioOffset,
+
+        HitsoundPitchingAmount,
 
         VolumeInactive,
         MenuMusic,
