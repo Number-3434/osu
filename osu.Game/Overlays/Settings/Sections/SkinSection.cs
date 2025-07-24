@@ -5,7 +5,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
 using JetBrains.Annotations;
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
@@ -17,6 +19,8 @@ using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Localisation;
 using osu.Framework.Logging;
+using osu.Framework.Platform;
+using osu.Game.Beatmaps;
 using osu.Game.Database;
 using osu.Game.Graphics;
 using osu.Game.Graphics.UserInterface;
@@ -49,6 +53,10 @@ namespace osu.Game.Overlays.Settings.Sections
         }.ToLiveUnmanaged();
 
         private readonly List<Live<SkinInfo>> dropdownItems = new List<Live<SkinInfo>>();
+
+        private readonly Bindable<string> skinIniBindable = new Bindable<string>();
+        private readonly Bindable<bool> allowSliderBallTint = new BindableBool(false);
+        private BasicTextBox skinIniTextBox;
 
         [Resolved]
         private SkinManager skins { get; set; }
@@ -91,7 +99,61 @@ namespace osu.Game.Overlays.Settings.Sections
                     Text = SkinSettingsStrings.SkinLayoutEditor,
                     Action = () => skinEditor?.ToggleVisibility(),
                 },
+                new FillFlowContainer
+                {
+                    RelativeSizeAxes = Axes.X,
+                    AutoSizeAxes = Axes.Y,
+                    Direction = FillDirection.Vertical,
+                    Padding = new MarginPadding { Horizontal = 10, Vertical = 10 },
+                    Children = new Drawable[]
+                    {
+                        new Container
+                        {
+                            RelativeSizeAxes = Axes.X,
+                            Height = 200,
+                            Masking = true,
+                            CornerRadius = 10,
+                            BorderThickness = 2,
+                            BorderColour = OsuColour.Gray(0.8f),
+                            Children = new Drawable[]
+                            {
+                                skinIniTextBox = new BasicTextBox
+                                {
+                                    RelativeSizeAxes = Axes.Both,
+                                    Text = skinIniBindable.Value,
+                                    ReleaseFocusOnCommit = false,
+                                    Height = 200,
+                                    PlaceholderText = "Edit skin.ini here...",
+                                    Colour = OsuColour.Gray(1.0f),
+                                    Current = skinIniBindable,
+                                }
+                            }
+                        },
+                        new SettingsButton
+                        {
+                            Text = "Save skin.ini",
+                            //Action = () => SaveSkinIni(),
+                        },
+                    },
+                },
+                new SettingsCheckbox
+                {
+                    RelativeSizeAxes = Axes.X,
+                    Width = 0.5f,
+                    LabelText = "Allow Slider Ball Tinting",
+                    Margin = new MarginPadding { Horizontal = SettingsPanel.CONTENT_MARGINS },
+                    Current = allowSliderBallTint,
+                    TooltipText = "Should the slider combo colour tint the slider ball?",
+                }
             };
+
+            skinIniBindable.BindValueChanged(skinIni =>
+            {
+                if (skinIni.NewValue == null)
+                    return;
+
+                skinIniTextBox.Text = skinIni.NewValue;
+            }, true);
         }
 
         protected override void LoadComplete()
