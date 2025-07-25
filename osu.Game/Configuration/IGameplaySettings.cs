@@ -19,5 +19,11 @@ namespace osu.Game.Configuration
         IBindable<float> ComboColourNormalisationAmount { get; }
 
         IBindable<float> PositionalHitsoundsLevel { get; }
+
+        IBindable<double> HitsoundPitchingAmount { get; }
+        IBindable<double> HitsoundPitchingCurve { get; }
+        IBindable<bool> HitsoundPitchingStepped { get; }
+        IBindable<bool> HitsoundPitchingKeepTempo { get; }
+        IBindable<HitsoundPitchingThreshold> HitsoundPitchingThreshold { get; }
     }
 }

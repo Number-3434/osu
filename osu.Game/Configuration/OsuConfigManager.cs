@@ -227,6 +227,12 @@ namespace osu.Game.Configuration
             SetDefault(OsuSetting.EditorSubmissionLoadInBrowserAfterSubmission, true);
 
             SetDefault(OsuSetting.WasSupporter, false);
+
+            SetDefault(OsuSetting.HitsoundPitchingAmount, 0, -24, 24, 0.05);
+            SetDefault(OsuSetting.HitsoundPitchingCurve, 1, 0, 2.5, 0.01);
+            SetDefault(OsuSetting.HitsoundPitchingStepped, false);
+            SetDefault(OsuSetting.HitsoundPitchingKeepTempo, true);
+            SetDefault(OsuSetting.HitsoundPitchingThreshold, HitsoundPitchingThreshold.Great);
         }
 
         protected override bool CheckLookupContainsPrivateInformation(OsuSetting lookup)
@@ -334,6 +340,12 @@ namespace osu.Game.Configuration
 
         IBindable<float> IGameplaySettings.ComboColourNormalisationAmount => GetOriginalBindable<float>(OsuSetting.ComboColourNormalisationAmount);
         IBindable<float> IGameplaySettings.PositionalHitsoundsLevel => GetOriginalBindable<float>(OsuSetting.PositionalHitsoundsLevel);
+
+        IBindable<double> IGameplaySettings.HitsoundPitchingAmount => GetOriginalBindable<double>(OsuSetting.HitsoundPitchingAmount);
+        IBindable<double> IGameplaySettings.HitsoundPitchingCurve => GetOriginalBindable<double>(OsuSetting.HitsoundPitchingCurve);
+        IBindable<bool> IGameplaySettings.HitsoundPitchingStepped => GetOriginalBindable<bool>(OsuSetting.HitsoundPitchingStepped);
+        IBindable<bool> IGameplaySettings.HitsoundPitchingKeepTempo => GetOriginalBindable<bool>(OsuSetting.HitsoundPitchingKeepTempo);
+        IBindable<HitsoundPitchingThreshold> IGameplaySettings.HitsoundPitchingThreshold => GetOriginalBindable<HitsoundPitchingThreshold>(OsuSetting.HitsoundPitchingThreshold);
     }
 
     // IMPORTANT: These are used in user configuration files.
@@ -473,6 +485,22 @@ namespace osu.Game.Configuration
         /// Cached state of whether local user is a supporter.
         /// Used to allow early checks (ie for startup samples) to be in the correct state, even if the API authentication process has not completed.
         /// </summary>
-        WasSupporter
+        WasSupporter,
+
+        HitsoundPitchingAmount,
+        HitsoundPitchingCurve,
+        HitsoundPitchingStepped,
+        HitsoundPitchingKeepTempo,
+        HitsoundPitchingThreshold,
+    }
+
+    public enum HitsoundPitchingThreshold
+    {
+        Miss = HitResult.Miss,
+        Meh = HitResult.Meh,
+        Ok = HitResult.Ok,
+        Good = HitResult.Good,
+        Great = HitResult.Great,
+        Perfect = HitResult.Perfect,
     }
 }

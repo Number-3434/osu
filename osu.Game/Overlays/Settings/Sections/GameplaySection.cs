@@ -25,6 +25,7 @@ namespace osu.Game.Overlays.Settings.Sections
             {
                 new GeneralSettings(),
                 new AudioSettings(),
+                new HitsoundPitchingSettings(),
                 new BeatmapSettings(),
                 new BackgroundSettings(),
                 new HUDSettings(),
