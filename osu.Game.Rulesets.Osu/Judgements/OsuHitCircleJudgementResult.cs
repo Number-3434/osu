@@ -20,6 +20,14 @@ namespace osu.Game.Rulesets.Osu.Judgements
         /// </summary>
         public Vector2? CursorPositionAtHit;
 
+        public Vector2? CursorOffsetAtHit => CursorPositionAtHit == null || !CursorPositionAtHit.HasValue
+            ? null
+            : HitCircle.Position - CursorPositionAtHit.Value;
+
+        public Vector2? StackedCursorOffsetAtHit => CursorPositionAtHit == null || !CursorPositionAtHit.HasValue
+            ? null
+            : HitCircle.StackedPosition - CursorPositionAtHit.Value;
+
         public OsuHitCircleJudgementResult(HitObject hitObject, Judgement judgement)
             : base(hitObject, judgement)
         {

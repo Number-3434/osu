@@ -20,10 +20,11 @@ namespace osu.Game.Configuration
 
         IBindable<float> PositionalHitsoundsLevel { get; }
 
+        IBindable<bool> HitsoundPitchingEnabled { get; }
         IBindable<double> HitsoundPitchingAmount { get; }
         IBindable<double> HitsoundPitchingCurve { get; }
         IBindable<bool> HitsoundPitchingStepped { get; }
         IBindable<bool> HitsoundPitchingKeepTempo { get; }
-        IBindable<HitsoundPitchingThreshold> HitsoundPitchingThreshold { get; }
+        IBindable<HitsoundPitchingThresholdSetting> HitsoundPitchingThreshold { get; }
     }
 }

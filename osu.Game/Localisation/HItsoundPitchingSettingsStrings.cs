@@ -15,6 +15,16 @@ namespace osu.Game.Localisation
         public static LocalisableString HitsoundPitchingHeader => new TranslatableString(getKey(@"hitsound_pitching_header"), @"Hitsound pitching");
 
         /// <summary>
+        /// "Enabled"
+        /// </summary>
+        public static LocalisableString HitsoundPitchingEnabled => new TranslatableString(getKey(@"hitsound_pitching_enabled"), @"Enabled");
+
+        /// <summary>
+        /// "Hitsound pitching adjusts the pitch of hitsounds based on how early or late they are hit."
+        /// </summary>
+        public static LocalisableString HitsoundPitchingEnabledTooltip => new TranslatableString(getKey(@"hitsound_pitching_enabled_tooltip"), @"Hitsound pitching adjusts the pitch of hitsounds based on how early or late they are hit.");
+
+        /// <summary>
         /// "Pitching amount"
         /// </summary>
         public static LocalisableString HitsoundPitchingAmount => new TranslatableString(getKey(@"hitsound_pitching_amount"), @"Pitching amount");
@@ -30,7 +40,7 @@ namespace osu.Game.Localisation
         public static LocalisableString HitsoundPitchingCurve => new TranslatableString(getKey(@"hitsound_pitching_curve"), @"Pitching sensitivity");
 
         /// <summary>
-        /// "The amount of quadratic curve applied to hitsounds. Higher values reduce the "sensitivity" of the pitch shift, and lower values increase it. Negative values will do the opposite."
+        /// "The amount of quadratic curve applied to hitsounds. Higher values reduce the &quot;sensitivity&quot; of the pitch shift, and lower values increase it. Negative values will do the opposite."
         /// </summary>
         public static LocalisableString HitsoundPitchingCurveTooltip => new TranslatableString(getKey(@"hitsound_pitching_curve_tooltip"), @"The amount of quadratic curve applied to hitsounds. Higher values reduce the ""sensitivity"" of the pitch shift, and lower values increase it. Negative values will do the opposite.");
 
@@ -60,9 +70,15 @@ namespace osu.Game.Localisation
         public static LocalisableString HitsoundPitchingThreshold => new TranslatableString(getKey(@"hitsound_pitching_threshold"), @"Pitching threshold");
 
         /// <summary>
-        /// "The best possible judgement before pitch shifting is applied. A value of 'Perfect' will always apply pitch shift, a value of 'Great' will apply pitch shift only if the judgement is worse than 'Great', etc., and a value of 'Miss' will never apply pitch shift."
+        /// "The best possible judgement before pitch shifting is applied.
+        /// - A value of &#39;Perfect&#39; will always apply pitch shift
+        /// - A value of &#39;Good&#39; will only apply pitch shift if the judgement is worse than &#39;Great&#39;, (i.e. a 100 or a 50 ro osu!classic), etc.
+        /// - A value of &#39;Miss&#39; will never apply any pitch shift"
         /// </summary>
-        public static LocalisableString HitsoundPitchingThresholdTooltip => new TranslatableString(getKey(@"hitsound_pitching_threshold_tooltip"), @"The best possible judgement before pitch shifting is applied. A value of 'Perfect' will always apply pitch shift, a value of 'Great' will apply pitch shift only if the judgement is worse than 'Great', etc., and a value of 'Miss' will never apply pitch shift.");
+        public static LocalisableString HitsoundPitchingThresholdTooltip => new TranslatableString(getKey(@"hitsound_pitching_threshold_tooltip"), @"The best possible judgement before pitch shifting is applied.
+- A value of 'Perfect' will always apply pitch shift
+- A value of 'Good' will only apply pitch shift if the judgement is worse than 'Great', (i.e. a 100 or a 50 ro osu!classic), etc.
+- A value of 'Miss' will never apply any pitch shift");
 
         private static string getKey(string key) => $@"{prefix}:{key}";
     }

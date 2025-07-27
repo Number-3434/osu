@@ -10,6 +10,7 @@ using osu.Framework.Graphics.Containers;
 using osu.Framework.Input.Bindings;
 using osu.Framework.Input.Events;
 using osu.Framework.Utils;
+using osu.Game.Configuration;
 using osu.Game.Graphics.Containers;
 using osu.Game.Rulesets.Judgements;
 using osu.Game.Rulesets.Objects.Drawables;
@@ -174,12 +175,113 @@ namespace osu.Game.Rulesets.Osu.Objects.Drawables
             return null;
         }
 
+        protected Vector2? CalculateStackedCursorOffset()
+        {
+            if (Result is not OsuHitCircleJudgementResult osuResult)
+                return null;
+
+            if (osuResult.StackedCursorOffsetAtHit is not Vector2 cursorOffset)
+                return null;
+
+            return Vector2.Divide(cursorOffset, Scale);
+        }
+
+        protected Vector2 CalculateRelativeCartesianOffset(Vector2 position) => (position - PositionBindable.Value) / ScaleBindable.Value;
+
+        protected Vector2 CalculateRelativeVectorOffset(Vector2 currentPosition)
+        {
+            // Default to a high Y value to avoid NaN calculations.
+            Vector2 prevPosition = PreviousHitObject?.ScreenSpaceDrawQuad.Centre ?? currentPosition with { Y = 1000 };
+
+            return CalculatePointLineDistances(prevPosition, PositionBindable.Value, currentPosition);
+        }
+
         /// <summary>
         /// Retrieves the <see cref="HitResult"/> for a time offset.
         /// </summary>
         /// <param name="timeOffset">The time offset.</param>
         /// <returns>The hit result, or <see cref="HitResult.None"/> if <paramref name="timeOffset"/> doesn't result in a judgement.</returns>
         protected virtual HitResult ResultFor(double timeOffset) => HitObject.HitWindows.ResultFor(timeOffset);
+
+        /// <summary>
+        /// Calculate the pitch adjustment to be used for sample playback given a certain judgement.
+        ///
+        /// Note that this will always be a positive value greater than 0.
+        /// </summary>
+        protected double CalculateSamplePlaybackFrequency()
+        {
+            if (HitsoundPitchingThresholdBindable.Value is HitsoundPitchingThresholdSetting threshold && threshold == HitsoundPitchingThresholdSetting.Miss)
+                return 1;
+
+            HitResult convertedThreshold = threshold switch
+            {
+                HitsoundPitchingThresholdSetting.Good => HitResult.Ok,
+                HitsoundPitchingThresholdSetting.Perfect => HitResult.Great,
+
+                _ => (HitResult)threshold,
+            };
+
+            if (HitsoundPitchingAmountBindable.Value is double pitchingAmount && pitchingAmount == 0)
+                return 1;
+
+            if (HitsoundPitchingCurveBindable.Value is double pitchingCurve && pitchingCurve == 0)
+                return 1; // x raised to 0 is always 1, for any value of x.
+
+            if (HitObject.HitWindows.WindowFor(HitResult.Miss) is double maxHitWindow && maxHitWindow <= 0)
+                return 1; // If the max hit window is zero or negative, we cannot calculate a valid offset.
+
+            if ((int)Result.Type > (int)convertedThreshold)
+                return 1; // If the result is above the threshold, we do not pitch the sample.
+
+            double minHitWindow = HitObject.HitWindows.WindowFor(convertedThreshold);
+
+            // Inverse lerp function
+            // We multiply the time offset by -1 to ensure that early hits are higher in pitch, and late hits are lower in pitch.
+            double offsetAsPercentage = -1 * (Result.TimeOffset - minHitWindow) / (maxHitWindow - minHitWindow);
+
+            // Convert semitones to a rate.
+            double pitchingAmountAsRate = Math.Pow(2, pitchingAmount / 12);
+
+            // Apply the pitching curve
+            double exponent = Math.Pow(Math.Abs(offsetAsPercentage), pitchingCurve);
+
+            // Math.Sign() to allow for reverse pitching, and we use Math.pow() to linearly adjusted the pitch eacy way
+            // E.g. For an early miss, offsetAsPercentage = -1, Math.Pow(2, -1) = 0.5 = one octave lower.
+            // For a late miss, offsetAsPercentage = 1, Math.Pow(2, 1) = 2 = one octave higher.
+            // For a perfect hit, offsetAsPercentage = 0, Math.Pow(2, 0) = 1 = no pitch change.
+            double returnedValue = Math.Pow(pitchingAmountAsRate, Math.Sign(offsetAsPercentage) * exponent);
+
+            return returnedValue;
+        }
+
+        protected override void PrepareSamples()
+        {
+            base.PrepareSamples();
+
+            if (Result is not OsuHitCircleJudgementResult osuResult)
+                return;
+
+            if (osuResult.StackedCursorOffsetAtHit is not Vector2 cursorOffset)
+                return;
+
+            Vector2.Divide(cursorOffset, Scale);
+
+            // Only update frequency and tempo if they have actually changed, to avoid unnecessary property sets.
+            double frequency = CalculateSamplePlaybackFrequency();
+
+            if (!Precision.AlmostEquals(Samples.Frequency.Value, frequency))
+            {
+                Samples.Frequency.Value = frequency;
+
+                if (HitsoundPitchingKeepTempoBindable.Value)
+                {
+                    double tempo = 1 / frequency;
+
+                    if (!Precision.AlmostEquals(Samples.Tempo.Value, tempo))
+                        Samples.Tempo.Value = tempo;
+                }
+            }
+        }
 
         protected override void UpdateInitialTransforms()
         {

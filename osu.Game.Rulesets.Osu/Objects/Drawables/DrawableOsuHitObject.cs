@@ -149,6 +149,27 @@ namespace osu.Game.Rulesets.Osu.Objects.Drawables
         /// <param name="drawable">The drawable to calculate its relative position.</param>
         protected float CalculateDrawableRelativePosition(Drawable drawable) => (drawable.ScreenSpaceDrawQuad.Centre.X - parentScreenSpaceRectangle.X) / parentScreenSpaceRectangle.Width;
 
+        /// <summary>
+        /// Calculates the distance from a point to a line defined by two points, as well as the signed perpendicular (across) distance.
+        /// </summary>
+        /// <param name="lineStart">The start point of the line.</param>
+        /// <param name="lineEnd">The end point of the line.</param>
+        /// <param name="point">The point to measure from.</param>
+        /// <returns>A tuple containing (distanceToLine, perpendicularDistanceAcrossLine).</returns>
+        protected static Vector2 CalculatePointLineDistances(Vector2 lineStart, Vector2 lineEnd, Vector2 point)
+        {
+            Vector2 ab = lineEnd - lineStart;
+            Vector2 ap = point - lineStart;
+
+            // Distance from point to line (unsigned)
+            float distanceToLine = MathF.Abs(Vector2.PerpDot(ab, ap)) / ab.Length;
+
+            // Signed perpendicular distance (across the line)
+            float perpendicularDistance = Vector2.PerpDot(ab.Normalized(), ap);
+
+            return new Vector2(distanceToLine, perpendicularDistance);
+        }
+
         protected override JudgementResult CreateResult(Judgement judgement) => new OsuJudgementResult(HitObject, judgement);
 
         protected void ApplyRepeatFadeIn(Drawable target, double fadeTime)

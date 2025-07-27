@@ -196,10 +196,11 @@ namespace osu.Game.Screens.Edit.Compose
         // Arguable.
         IBindable<float> IGameplaySettings.PositionalHitsoundsLevel => globalGameplaySettings.PositionalHitsoundsLevel;
 
+        IBindable<bool> IGameplaySettings.HitsoundPitchingEnabled => globalGameplaySettings.HitsoundPitchingEnabled;
         IBindable<double> IGameplaySettings.HitsoundPitchingAmount => globalGameplaySettings.HitsoundPitchingAmount;
         IBindable<double> IGameplaySettings.HitsoundPitchingCurve => globalGameplaySettings.HitsoundPitchingCurve;
         IBindable<bool> IGameplaySettings.HitsoundPitchingStepped => globalGameplaySettings.HitsoundPitchingStepped;
         IBindable<bool> IGameplaySettings.HitsoundPitchingKeepTempo => globalGameplaySettings.HitsoundPitchingKeepTempo;
-        IBindable<HitsoundPitchingThreshold> IGameplaySettings.HitsoundPitchingThreshold => globalGameplaySettings.HitsoundPitchingThreshold;
+        IBindable<HitsoundPitchingThresholdSetting> IGameplaySettings.HitsoundPitchingThreshold => globalGameplaySettings.HitsoundPitchingThreshold;
     }
 }

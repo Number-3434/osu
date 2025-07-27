@@ -10,6 +10,7 @@ using System.Linq;
 using JetBrains.Annotations;
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
+using osu.Framework.Extensions.IEnumerableExtensions;
 using osu.Framework.Extensions.ListExtensions;
 using osu.Framework.Extensions.ObjectExtensions;
 using osu.Framework.Extensions.TypeExtensions;
@@ -26,7 +27,6 @@ using osu.Game.Rulesets.Scoring;
 using osu.Game.Rulesets.UI;
 using osu.Game.Screens.Play;
 using osu.Game.Skinning;
-using osuTK;
 using osuTK.Graphics;
 
 namespace osu.Game.Rulesets.Objects.Drawables
@@ -140,11 +140,12 @@ namespace osu.Game.Rulesets.Objects.Drawables
         private readonly IBindable<float> comboColourBrightness = new Bindable<float>();
         private readonly Bindable<int> comboIndexWithOffsetsBindable = new Bindable<int>();
 
-        private readonly IBindable<double> hitsoundPitchingAmount = new Bindable<double>();
-        private readonly IBindable<double> hitsoundPitchingCurve = new Bindable<double>();
-        private readonly IBindable<bool> hitsoundPitchingStepped = new Bindable<bool>();
-        private readonly IBindable<bool> hitsoundPitchingKeepTempo = new Bindable<bool>();
-        private readonly IBindable<HitsoundPitchingThreshold> hitsoundPitchingThreshold = new Bindable<HitsoundPitchingThreshold>();
+        protected readonly IBindable<bool> HitsoundPitchingEnabledBindable = new Bindable<bool>();
+        protected IBindable<double> HitsoundPitchingAmountBindable { get; private set; }
+        protected IBindable<double> HitsoundPitchingCurveBindable { get; private set; }
+        protected IBindable<bool> HitsoundPitchingSteppedBindable { get; private set; }
+        protected IBindable<bool> HitsoundPitchingKeepTempoBindable { get; private set; }
+        protected IBindable<HitsoundPitchingThresholdSetting> HitsoundPitchingThresholdBindable { get; private set; }
 
         public const double MAX_PITCHING_OCTAVES = 2.0;
 
@@ -213,11 +214,24 @@ namespace osu.Game.Rulesets.Objects.Drawables
             positionalHitsoundsLevel.BindTo(gameplaySettings.PositionalHitsoundsLevel);
             comboColourBrightness.BindTo(gameplaySettings.ComboColourNormalisationAmount);
 
-            hitsoundPitchingAmount.BindTo(gameplaySettings.HitsoundPitchingAmount);
-            hitsoundPitchingCurve.BindTo(gameplaySettings.HitsoundPitchingCurve);
-            hitsoundPitchingStepped.BindTo(gameplaySettings.HitsoundPitchingStepped);
-            hitsoundPitchingKeepTempo.BindTo(gameplaySettings.HitsoundPitchingKeepTempo);
-            hitsoundPitchingThreshold.BindTo(gameplaySettings.HitsoundPitchingThreshold);
+            HitsoundPitchingEnabledBindable.BindTo(gameplaySettings.HitsoundPitchingEnabled);
+            HitsoundPitchingEnabledBindable.BindValueChanged(enabled =>
+            {
+                if (!enabled.NewValue)
+                    return;
+
+                HitsoundPitchingAmountBindable ??= new Bindable<double>();
+                HitsoundPitchingCurveBindable ??= new Bindable<double>();
+                HitsoundPitchingSteppedBindable ??= new Bindable<bool>();
+                HitsoundPitchingKeepTempoBindable ??= new Bindable<bool>();
+                HitsoundPitchingThresholdBindable ??= new Bindable<HitsoundPitchingThresholdSetting>();
+
+                HitsoundPitchingAmountBindable.BindTo(gameplaySettings.HitsoundPitchingAmount);
+                HitsoundPitchingCurveBindable.BindTo(gameplaySettings.HitsoundPitchingCurve);
+                HitsoundPitchingSteppedBindable.BindTo(gameplaySettings.HitsoundPitchingStepped);
+                HitsoundPitchingKeepTempoBindable.BindTo(gameplaySettings.HitsoundPitchingKeepTempo);
+                HitsoundPitchingThresholdBindable.BindTo(gameplaySettings.HitsoundPitchingThreshold);
+            }, true);
 
             // Explicit non-virtual function call in case a DrawableHitObject overrides AddInternal.
             base.AddInternal(Samples = new PausableSkinnableSound
@@ -622,56 +636,9 @@ namespace osu.Game.Rulesets.Objects.Drawables
             return Math.Round(returnedValue, 2);
         }
 
-        /// <summary>
-        /// Calculate the pitch adjustment to be used for sample playback given a certain judgement.
-        ///
-        /// Note that this will always be a positive value greater than 0.
-        /// </summary>
-        protected double CalculateSamplePlaybackFrequency()
+        protected virtual void PrepareSamples()
         {
-            if (hitsoundPitchingThreshold.Value is HitsoundPitchingThreshold threshold && threshold == HitsoundPitchingThreshold.Miss)
-                return 1;
-
-            HitResult convertedThreshold = threshold switch
-            {
-                HitsoundPitchingThreshold.Good => HitResult.Ok,
-                HitsoundPitchingThreshold.Perfect => HitResult.Great,
-
-                _ => (HitResult)threshold,
-            };
-
-            if (hitsoundPitchingAmount.Value is double pitchingAmount && pitchingAmount == 0)
-                return 1;
-
-            if (hitsoundPitchingCurve.Value is double pitchingCurve && pitchingCurve == 0)
-                return 1; // x raised to 0 is always 1, for any value of x.
-
-            if (HitObject.HitWindows.WindowFor(HitResult.Miss) is double maxHitWindow && maxHitWindow <= 0)
-                return 1; // If the max hit window is zero or negative, we cannot calculate a valid offset.
-
-            if ((int)Result.Type > (int)convertedThreshold)
-                return 1; // If the result is above the threshold, we do not pitch the sample.
-
-            double minHitWindow = HitObject.HitWindows.WindowFor(convertedThreshold);
-
-            // Inverse lerp function
-            // We multiply the time offset by -1 to ensure that early hits are higher in pitch, and late hits are lower in pitch.
-            double offsetAsPercentage = -1 * (Result.TimeOffset - minHitWindow) / (maxHitWindow - minHitWindow);
-            double absOffset = Math.Abs(offsetAsPercentage);
-
-            // Convert semitones to a rate.
-            double pitchingAmountAsRate = Math.Pow(2, pitchingAmount / 12);
-
-            // Apply the pitching curve
-            double exponent = Math.Pow(absOffset, pitchingCurve);
-
-            // Math.Sign() to allow for reverse pitching, and we use Math.pow() to linearly adjusted the pitch eacy way
-            // E.g. For an early miss, offsetAsPercentage = -1, Math.Pow(2, -1) = 0.5 = one octave lower.
-            // For a late miss, offsetAsPercentage = 1, Math.Pow(2, 1) = 2 = one octave higher.
-            // For a perfect hit, offsetAsPercentage = 0, Math.Pow(2, 0) = 1 = no pitch change.
-            double returnedValue = Math.Pow(pitchingAmountAsRate, Math.Sign(offsetAsPercentage) * exponent);
-
-            return returnedValue;
+            Samples.Balance.Value = CalculateSamplePlaybackBalance(SamplePlaybackPosition);
         }
 
         /// <summary>
@@ -680,27 +647,12 @@ namespace osu.Game.Rulesets.Objects.Drawables
         /// </summary>
         public virtual void PlaySamples()
         {
-            if (Samples != null)
-            {
-                Samples.Balance.Value = CalculateSamplePlaybackBalance(SamplePlaybackPosition);
+            if (Samples == null)
+                return;
 
-                // Only update frequency and tempo if they have actually changed, to avoid unnecessary property sets.
-                double frequency = CalculateSamplePlaybackFrequency();
-                if (!Precision.AlmostEquals(Samples.Frequency.Value, frequency))
-                {
-                    Samples.Frequency.Value = frequency;
+            PrepareSamples();
 
-                    if (hitsoundPitchingKeepTempo.Value)
-                    {
-                        double tempo = 1 / frequency;
-
-                        if (!Precision.AlmostEquals(Samples.Tempo.Value, tempo))
-                            Samples.Tempo.Value = tempo;
-                    }
-                }
-
-                Samples.Play();
-            }
+            Samples.Play();
         }
 
         /// <summary>
@@ -900,6 +852,11 @@ namespace osu.Game.Rulesets.Objects.Drawables
         where TObject : HitObject
     {
         public new TObject HitObject => (TObject)base.HitObject;
+
+        public HitObjectContainer HitObjectContainer => Parent as HitObjectContainer;
+
+        public DrawableHitObject PreviousHitObject => HitObjectContainer?.Objects.GetPrevious(this);
+        public DrawableHitObject NextHitObject => HitObjectContainer?.Objects.GetNext(this);
 
         protected DrawableHitObject([CanBeNull] TObject hitObject)
             : base(hitObject)

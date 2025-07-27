@@ -228,11 +228,12 @@ namespace osu.Game.Configuration
 
             SetDefault(OsuSetting.WasSupporter, false);
 
-            SetDefault(OsuSetting.HitsoundPitchingAmount, 0, -24, 24, 0.05);
+            SetDefault(OsuSetting.HitsoundPitchingEnabled, false);
+            SetDefault(OsuSetting.HitsoundPitchingAmount, 6, -24, 24, 0.05);
             SetDefault(OsuSetting.HitsoundPitchingCurve, 1, 0, 2.5, 0.01);
             SetDefault(OsuSetting.HitsoundPitchingStepped, false);
-            SetDefault(OsuSetting.HitsoundPitchingKeepTempo, true);
-            SetDefault(OsuSetting.HitsoundPitchingThreshold, HitsoundPitchingThreshold.Great);
+            SetDefault(OsuSetting.HitsoundPitchingKeepTempo, false);
+            SetDefault(OsuSetting.HitsoundPitchingThreshold, HitsoundPitchingThresholdSetting.Good);
         }
 
         protected override bool CheckLookupContainsPrivateInformation(OsuSetting lookup)
@@ -341,11 +342,12 @@ namespace osu.Game.Configuration
         IBindable<float> IGameplaySettings.ComboColourNormalisationAmount => GetOriginalBindable<float>(OsuSetting.ComboColourNormalisationAmount);
         IBindable<float> IGameplaySettings.PositionalHitsoundsLevel => GetOriginalBindable<float>(OsuSetting.PositionalHitsoundsLevel);
 
+        IBindable<bool> IGameplaySettings.HitsoundPitchingEnabled => GetOriginalBindable<bool>(OsuSetting.HitsoundPitchingEnabled);
         IBindable<double> IGameplaySettings.HitsoundPitchingAmount => GetOriginalBindable<double>(OsuSetting.HitsoundPitchingAmount);
         IBindable<double> IGameplaySettings.HitsoundPitchingCurve => GetOriginalBindable<double>(OsuSetting.HitsoundPitchingCurve);
         IBindable<bool> IGameplaySettings.HitsoundPitchingStepped => GetOriginalBindable<bool>(OsuSetting.HitsoundPitchingStepped);
         IBindable<bool> IGameplaySettings.HitsoundPitchingKeepTempo => GetOriginalBindable<bool>(OsuSetting.HitsoundPitchingKeepTempo);
-        IBindable<HitsoundPitchingThreshold> IGameplaySettings.HitsoundPitchingThreshold => GetOriginalBindable<HitsoundPitchingThreshold>(OsuSetting.HitsoundPitchingThreshold);
+        IBindable<HitsoundPitchingThresholdSetting> IGameplaySettings.HitsoundPitchingThreshold => GetOriginalBindable<HitsoundPitchingThresholdSetting>(OsuSetting.HitsoundPitchingThreshold);
     }
 
     // IMPORTANT: These are used in user configuration files.
@@ -487,6 +489,7 @@ namespace osu.Game.Configuration
         /// </summary>
         WasSupporter,
 
+        HitsoundPitchingEnabled,
         HitsoundPitchingAmount,
         HitsoundPitchingCurve,
         HitsoundPitchingStepped,
@@ -494,7 +497,7 @@ namespace osu.Game.Configuration
         HitsoundPitchingThreshold,
     }
 
-    public enum HitsoundPitchingThreshold
+    public enum HitsoundPitchingThresholdSetting
     {
         Miss = HitResult.Miss,
         Meh = HitResult.Meh,
