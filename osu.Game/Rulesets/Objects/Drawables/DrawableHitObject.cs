@@ -217,7 +217,7 @@ namespace osu.Game.Rulesets.Objects.Drawables
             HitsoundPitchingEnabledBindable.BindTo(gameplaySettings.HitsoundPitchingEnabled);
             HitsoundPitchingEnabledBindable.BindValueChanged(enabled =>
             {
-                if (!enabled.NewValue)
+                if (false && !enabled.NewValue)
                     return;
 
                 HitsoundPitchingAmountBindable ??= new Bindable<double>();

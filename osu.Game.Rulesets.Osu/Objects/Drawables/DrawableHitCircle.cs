@@ -34,6 +34,8 @@ namespace osu.Game.Rulesets.Osu.Objects.Drawables
         public HitReceptor HitArea { get; private set; } = null!;
         public SkinnableDrawable CirclePiece { get; private set; } = null!;
 
+        public OsuHitCircleJudgementResult? HitCircleResult => Result as OsuHitCircleJudgementResult;
+
         protected override IEnumerable<Drawable> DimmablePieces => new[] { CirclePiece };
 
         Drawable IHasApproachCircle.ApproachCircle => ApproachCircle;
@@ -186,7 +188,7 @@ namespace osu.Game.Rulesets.Osu.Objects.Drawables
             return Vector2.Divide(cursorOffset, Scale);
         }
 
-        protected Vector2 CalculateRelativeCartesianOffset(Vector2 position) => (position - PositionBindable.Value) / ScaleBindable.Value;
+        protected Vector2 CalculateRelativeCartesianOffset(Vector2 position) => Vector2.Divide(position - PositionBindable.Value, HitArea.DrawSize);
 
         protected Vector2 CalculateRelativeVectorOffset(Vector2 currentPosition)
         {
@@ -202,6 +204,13 @@ namespace osu.Game.Rulesets.Osu.Objects.Drawables
         /// <param name="timeOffset">The time offset.</param>
         /// <returns>The hit result, or <see cref="HitResult.None"/> if <paramref name="timeOffset"/> doesn't result in a judgement.</returns>
         protected virtual HitResult ResultFor(double timeOffset) => HitObject.HitWindows.ResultFor(timeOffset);
+
+        protected static double ApplyCurve(double target, double curve)
+        {
+            return Math.Sign(target) * Math.Pow(Math.Abs(target), curve);
+        }
+
+        protected static double SemitonesToPitchingRate(double semitones) => Math.Pow(2, semitones / 12);
 
         /// <summary>
         /// Calculate the pitch adjustment to be used for sample playback given a certain judgement.
@@ -239,17 +248,14 @@ namespace osu.Game.Rulesets.Osu.Objects.Drawables
             // We multiply the time offset by -1 to ensure that early hits are higher in pitch, and late hits are lower in pitch.
             double offsetAsPercentage = -1 * (Result.TimeOffset - minHitWindow) / (maxHitWindow - minHitWindow);
 
-            // Convert semitones to a rate.
-            double pitchingAmountAsRate = Math.Pow(2, pitchingAmount / 12);
-
             // Apply the pitching curve
-            double exponent = Math.Pow(Math.Abs(offsetAsPercentage), pitchingCurve);
+            double exponent = ApplyCurve(offsetAsPercentage, pitchingCurve);
 
             // Math.Sign() to allow for reverse pitching, and we use Math.pow() to linearly adjusted the pitch eacy way
             // E.g. For an early miss, offsetAsPercentage = -1, Math.Pow(2, -1) = 0.5 = one octave lower.
             // For a late miss, offsetAsPercentage = 1, Math.Pow(2, 1) = 2 = one octave higher.
             // For a perfect hit, offsetAsPercentage = 0, Math.Pow(2, 0) = 1 = no pitch change.
-            double returnedValue = Math.Pow(pitchingAmountAsRate, Math.Sign(offsetAsPercentage) * exponent);
+            double returnedValue = Math.Pow(pitchingAmount, exponent);
 
             return returnedValue;
         }
@@ -258,28 +264,22 @@ namespace osu.Game.Rulesets.Osu.Objects.Drawables
         {
             base.PrepareSamples();
 
-            if (Result is not OsuHitCircleJudgementResult osuResult)
-                return;
+            if (HitCircleResult?.CursorPositionAtHit is Vector2 cursorPosition)
+            {
+                Vector2 offset = CalculateRelativeCartesianOffset(cursorPosition);
 
-            if (osuResult.StackedCursorOffsetAtHit is not Vector2 cursorOffset)
-                return;
+                double range = -48;
 
-            Vector2.Divide(cursorOffset, Scale);
+                Samples.Frequency.Value = SemitonesToPitchingRate(offset.Y * range / 2);
+                Samples.Balance.Value = Math.Clamp(2 * ApplyCurve(offset.X, 0.7), -1, 1);
+            }
 
             // Only update frequency and tempo if they have actually changed, to avoid unnecessary property sets.
-            double frequency = CalculateSamplePlaybackFrequency();
+            double balance = CalculateSamplePlaybackFrequency();
 
-            if (!Precision.AlmostEquals(Samples.Frequency.Value, frequency))
+            if (!Precision.AlmostEquals(Samples.Balance.Value, balance))
             {
-                Samples.Frequency.Value = frequency;
-
-                if (HitsoundPitchingKeepTempoBindable.Value)
-                {
-                    double tempo = 1 / frequency;
-
-                    if (!Precision.AlmostEquals(Samples.Tempo.Value, tempo))
-                        Samples.Tempo.Value = tempo;
-                }
+                // Samples.Balance.Value = balance;
             }
         }
 
